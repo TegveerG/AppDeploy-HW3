@@ -144,11 +144,11 @@ y_test = y_test.reset_index().drop("index", axis=1).astype('category')
 y_test = y_test.to_numpy().reshape(len(y_test),)
 ```
 
-# Classification Routine (12 Points):
+# Classification Routine (12 Points)
 
 Execute a classification routine using RandomForestClassifier(), BaggingClassifier(), and XGboostclassifier(). Independently output the accuracy box plot as discussed in class. Use any package you are comfortable with (seaborn, matplotlib).
 
-## RandomForestClassifier():
+## RandomForestClassifier()
 
 ```{python}
 #| vscode: {languageId: python}
@@ -184,7 +184,7 @@ plt.figure(figsize=(8, 6))
 sns.boxplot(x='Metric', y='Value', data=RF_mod_melted)
 plt.xlabel('Metric')
 plt.ylabel('Value')
-plt.title('Accuracy vs Weighted_F1 Training Set')
+plt.title('Random Forest Training Set Accuracy vs Weighted_F1')
 plt.show()
 plt.savefig('RF.jpeg')
 ```
@@ -218,11 +218,11 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 # save the plot
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
-plt.title('Confusion Matrix for Random Forest', fontsize=15, color='#336699',loc='center')
+plt.title('Test Set Confusion Matrix for Random Forest', fontsize=15, color='#336699',loc='center')
 plt.savefig('confusion_matrix_RF.png')
 ```
 
-## BaggingClassifier():
+## BaggingClassifier()
 
 ```{python}
 Bagging = BaggingClassifier()
@@ -256,7 +256,7 @@ plt.figure(figsize=(8, 6))
 sns.boxplot(x='Metric', y='Value', data=Bagging_mod_melted)
 plt.xlabel('Metric')
 plt.ylabel('Value')
-plt.title('Accuracy vs Weighted_F1 Training Set')
+plt.title('Bagging Training Set Accuracy vs Weighted_F1')
 plt.show()
 plt.savefig('Bagging.jpeg')
 ```
@@ -281,33 +281,137 @@ with open(pkl_filename, 'rb') as file:
   Y_predict = pickle_model.predict(X_test)
 ```
 
-## XGboostclassifier():
-
 ```{python}
+#| vscode: {languageId: python}
 
+conf_matrix = confusion_matrix(y_test, Y_predict)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Bagging', fontsize=15, color='#336699',loc='center')
+plt.savefig('confusion_matrix_Bagging.png')
 ```
 
-# Classification with GridSearchCV (8 Points):
+## XGboostclassifier()
 
-## RandomForestClassifier():
+```{python}
+XGB = XGBClassifier()
 
-Replicate the classification from Q2 using GridsearchCV().
+cv = RepeatedKFold(n_splits=5, n_repeats=2, random_state=1)
+
+XGB_accuracy = cross_val_score(XGB, X_train, y_train, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+
+XGB_weighted_f1 = cross_val_score(XGB, X_train, y_train, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
+
+mean_accuracy_percentage = XGB_accuracy.mean() * 100
+mean_weighted_f1_percentage = XGB_weighted_f1.mean() * 100
+
+print('XGBoost Mean Accuracy: %.3f Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
+```
+
+```{python}
+#| vscode: {languageId: python}
+
+results = {}
+results['Accuracy'] = XGB_accuracy
+results['Weighted_F1'] = XGB_weighted_f1
+
+XGB_mod = pd.DataFrame(results)
+
+# Melt the DataFrame to have 'Metric' as a new column indicating Accuracy or Weighted_F1
+XGB_mod_melted = pd.melt(XGB_mod, value_vars=['Accuracy', 'Weighted_F1'], var_name='Metric', value_name='Value')
+
+# Plotting using Seaborn
+plt.figure(figsize=(8, 6))
+sns.boxplot(x='Metric', y='Value', data=XGB_mod_melted)
+plt.xlabel('Metric')
+plt.ylabel('Value')
+plt.title('XGBoost Training Set Accuracy vs Weighted_F1')
+plt.show()
+plt.savefig('XGB.jpeg')
+```
+
+```{python}
+#| vscode: {languageId: python}
+
+import pickle
+
+XGB.fit(X_train, y_train)
+
+# Save to file in the current working directory
+pkl_filename = "XGB.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(XGB, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("XGBoost Test Set Accuracy: {0:.2f} %".format(100 * score))
+  Y_predict = pickle_model.predict(X_test)
+```
+
+```{python}
+#| vscode: {languageId: python}
+
+conf_matrix = confusion_matrix(y_test, Y_predict)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for XGBoost', fontsize=15, color='#336699',loc='center')
+plt.savefig('confusion_matrix_XGB.png')
+```
+
+# Classification with GridSearchCV (8 Points)
+
+## RandomForestClassifier()
+
 ```{python}
 # Add code here
 
 ```
 
-
-
-# Classification with RandomSearchCV (8 Points):
-
-Replicate the classification from Q2 using RandomSearchCV().
+## BaggingClassifier()
 
 ```{python}
 # Add code here
 
 ```
 
-# Comparison and Analysis (5 Points):
+## XGBClassifier()
+
+```{python}
+# Add code here
+
+```
+
+# Classification with RandomSearchCV (8 Points)
+
+## RandomForestClassifier()
+
+```{python}
+# Add code here
+
+```
+
+## BaggingClassifier()
+
+```{python}
+# Add code here
+
+```
+
+## XGBClassifier()
+
+```{python}
+# Add code here
+
+```
+
+# Comparison and Analysis (5 Points)
 
 Compare the results from Q2, Q3, and Q4. Describe the best hyperparameters for all three experiments.
