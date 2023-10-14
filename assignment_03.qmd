@@ -355,14 +355,14 @@ plt.savefig('products/plots/confusion_matrix_XGB.png')
 
 # defining parameter range
 param_grid = params = {
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
-    'max_depth': [3, 5, 7],
-    'criterion': ["gini", "entropy"]
-    'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
-    'max_features': list(range(1,train.shape[1])),
+  'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+  'max_depth': [3, 5, 7],
+  'criterion': ["gini", "entropy"],
+  'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
+  'max_features': list(range(1,X_train.shape[1])),
 }
   
-grid = GridSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -412,7 +412,7 @@ param_grid = params = {
     'warm_start': [True, False],
 }
   
-grid = GridSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -462,7 +462,7 @@ param_grid = params = {
     'min_child_weight': [0, 1, 3, 5],
 }
   
-grid = GridSearchCV(XGBClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(XGBClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -502,7 +502,7 @@ plt.savefig('products/plots/confusion_matrix_XGB_Grid_Tuned.png')
 
 ```{python}
 # defining parameter range
-param_grid = params = {
+param_search = params = {
     'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
     'max_depth': [3, 5, 7],
     'criterion': ["gini", "entropy"]
@@ -510,45 +510,45 @@ param_grid = params = {
     'max_features': list(range(1,train.shape[1])),
 }
   
-grid = RandomizedSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(RandomForestClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
-grid.fit(X_train, y_train)
+search.fit(X_train, y_train)
 
 # print best parameter after tuning
-print("The best parameters after tuning are: ", grid.best_params_)
+print("The best parameters after tuning are: ", search.best_params_)
   
 # print how our model looks after hyper-parameter tuning
-print("The best model after tuning looks like: ",grid.best_estimator_)
+print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "RF_Grid_Tuned.pkl"
+pkl_filename = "RF_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
-  pickle.dump(grid, file)
+  pickle.dump(search, file)
 
 # Load from file
 with open(pkl_filename, 'rb') as file:
   pickle_model = pickle.load(file)
   score = pickle_model.score(X_test, y_test)
   print("Grid-Search Tuned Random Forest Test Set Accuracy: {0:.2f} %".format(100 * score))
-  grid_predictions = pickle_model.predict(X_test)
+  search_predictions = pickle_model.predict(X_test)
 ```
 
 ```{python}
-conf_matrix = confusion_matrix(y_test, grid_predictions)
+conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
 # save the plot
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned Random Forest', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_RF_Grid_Tuned.png')
+plt.savefig('confusion_matrix_RF_Rand_Tuned.png')
 ```
 
 ## BaggingClassifier()
 
 ```{python}
 # defining parameter range
-param_grid = params = {
+param_search = params = {
     'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
     'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], 0.7*X_train.shape[0], X_train.shape[0]],
     'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], 0.7*X_train.shape[1], X_train.shape[1]],
@@ -558,45 +558,45 @@ param_grid = params = {
     'warm_start': [True, False],
 }
   
-grid = RandomizedSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(BaggingClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
-grid.fit(X_train, y_train)
+search.fit(X_train, y_train)
 
 # print best parameter after tuning
-print("The best parameters after tuning are: ", grid.best_params_)
+print("The best parameters after tuning are: ", search.best_params_)
   
 # print how our model looks after hyper-parameter tuning
-print("The best model after tuning looks like: ",grid.best_estimator_)
+print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "Bagging_Grid_Tuned.pkl"
+pkl_filename = "Bagging_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
-  pickle.dump(grid, file)
+  pickle.dump(search, file)
 
 # Load from file
 with open(pkl_filename, 'rb') as file:
   pickle_model = pickle.load(file)
   score = pickle_model.score(X_test, y_test)
   print("Grid-Search Tuned Bagging Test Set Accuracy: {0:.2f} %".format(100 * score))
-  grid_predictions = pickle_model.predict(X_test)
+  search_predictions = pickle_model.predict(X_test)
 ```
 
 ```{python}
-conf_matrix = confusion_matrix(y_test, grid_predictions)
+conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
 # save the plot
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned Bagging', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_Bagging_Grid_Tuned.png')
+plt.savefig('confusion_matrix_Bagging_Rand_Tuned.png')
 ```
 
 ## XGBClassifier()
 
 ```{python}
 # defining parameter range
-param_grid = params = {
+param_search = params = {
     'max_depth': [2, 3, 5, 10, 20],
     'max_leaves': [0, 1, 2, 3, 4, 5],
     'learning_rate': [1, 0.1, 0.01, 0.001, 0.0001],
@@ -606,38 +606,38 @@ param_grid = params = {
     'min_child_weight': [0, 1, 3, 5],
 }
   
-grid = RandomizedSearchCV(XGBClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(XGBClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
-grid.fit(X_train, y_train)
+search.fit(X_train, y_train)
 
 # print best parameter after tuning
-print("The best parameters after tuning are: ", grid.best_params_)
+print("The best parameters after tuning are: ", search.best_params_)
   
 # print how our model looks after hyper-parameter tuning
-print("The best model after tuning looks like: ",grid.best_estimator_)
+print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "XGB_Grid_Tuned.pkl"
+pkl_filename = "XGB_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
-  pickle.dump(grid, file)
+  pickle.dump(search, file)
 
 # Load from file
 with open(pkl_filename, 'rb') as file:
   pickle_model = pickle.load(file)
   score = pickle_model.score(X_test, y_test)
   print("Grid-Search Tuned XGBoost Test Set Accuracy: {0:.2f} %".format(100 * score))
-  grid_predictions = pickle_model.predict(X_test)
+  search_predictions = pickle_model.predict(X_test)
 ```
 
 ```{python}
-conf_matrix = confusion_matrix(y_test, grid_predictions)
+conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
 # save the plot
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned XGBoost', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_XGB_Grid_Tuned.png')
+plt.savefig('confusion_matrix_XGB_Rand_Tuned.png')
 ```
 
 # Comparison and Analysis (5 Points)
