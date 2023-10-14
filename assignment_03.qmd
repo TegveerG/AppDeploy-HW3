@@ -22,52 +22,9 @@ author:
 jupyter: python3
 ---
 
-# Instructions (Remove the instructions before submission)
-
-This assignment will deal with tuning the hyperparameters for the [online shopping dataset](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset). Make sure to remove the instructions and only keep Q6 onward. The qmd file of this assignment is located in the [files folder](https://georgetown.instructure.com/files/11681026/download?download_frd=1).
-
-- This is a group assignment with independent submission on Canvas. Collaboration is essential. Use Git for version control.
-- Begin by setting your random seed as the last four digits of your GUID.
-- Prefix each variable with 'g#groupnumber' (e.g., g01_variableName) to ensure uniqueness and to demonstrate originality in your group's work.
-- add the names of all group members to the YAML header above.
-- Use of Generative AI tools, including but not restricted to GPT-3 is strictly prohibited.
-
-## Git Commit and Collaboration
-
-- This is a group assignment. Collaboration is essential. Use Git for version control.
-- Regular and meaningful commit messages are expected, indicating steady progress and contributions from all group members.
-- Avoid large, infrequent commits. Instead, aim for more minor, frequent updates showing your code's evolution and thoughts.
-- Collaboration tools, especially Git, should be used as a backup tool and a truly collaborative platform. Discuss, review, and merge each other's contributions.
-
-# Grading Criteria
-
-- The assignment is worth 75 points.
-- There are three grading milestones in the assignment.
-  - Adherence to Requirements, Coding Standards, Documentation, Runtime, and Efficiency (22 Points)
-    - Adherence to Requirements (5 Points): Ensure all the given requirements of the assignment, including Git commits and collaboration, are met.
-    - Coding Standards (5 Points): Code should be readable and maintainable. Ensure appropriate variable naming and code commenting.
-    - Documentation (6 Points): Provide explanations or reasoning for using a particular command and describe the outputs. Avoid vague descriptions; aim for clarity and depth.
-    - Runtime (3 Points): The code should execute without errors and handle possible exceptions.
-    - Efficiency (3 Points): Implement efficient coding practices, avoid redundancy, and optimize for performance where applicable.
-  - Collaborative Programming (13 Points)
-    - GitHub Repository Structure (3 Points): A well-organized repository with clear directory structures and meaningful file names.
-    - Number of Commits (3 Points): Reflects steady progress and contributions from all group members.
-    - Commit Quality (3 Points): Clear, descriptive commit messages representing logical chunks of work. Avoid trivial commits like "typo fix."
-    - Collaboration & Contribution (4 Points): Demonstrated teamwork where each member contributes significantly. This can be seen through pull requests, code reviews, and merge activities.
-  - Assignment Questions (40 Points)
-
-# Adherence to Requirements, Coding Standards, Documentation, Runtime, and Efficiency (22 Points)
-This section is graded based on adherence to Requirements, Coding Standards,
-Documentation, Runtime, and Efficiency.
-
-# Collaborative Programming (13 Points)
-
-This section is graded based on the Github submission. Each person needs to have made commits to the repository. GitHub Repository Structure, Number of Commits, Commit Quality, Collaboration, and Contribution are generally graded based on the group's overall performance. However, if there is a significant difference in the number of commits or contributions between group members, the instructor may adjust the grade accordingly.
-
-
 # Assignment Questions (40 Points)
 
-# Data Preparation (7 Points):
+# Data Preparation (7 Points)
 
 ## Import the necessary libraries
 
@@ -139,6 +96,8 @@ y_test = y_test.reset_index().drop("index", axis=1).astype('category')
 y_test = y_test.to_numpy().reshape(len(y_test),)
 ```
 
+We split the dataset into training and test sets using `scikit-learn`'s `train_test_split` function. We use a 66.67/33.33 % split for training and testing respectively. Usually, I prefer a 80-20 train-test split; however, given the already known fact that the ensemble models perform very well on the credit card dataset, as seen in HW2, we can employ a more stringent split to assess the reliability of how these models generalize to more unseen data. We use a random state of 42 to ensure reproducibility.
+
 # Classification Routine (12 Points)
 
 Execute a classification routine using RandomForestClassifier(), BaggingClassifier(), and XGboostclassifier(). Independently output the accuracy box plot as discussed in class. Use any package you are comfortable with (seaborn, matplotlib).
@@ -178,8 +137,12 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('Random Forest Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('products/plots/RF.jpeg')
+plt.savefig('products/plots/RF_Box.jpeg')
 ```
+
+Both training set metrics Accuracy and Weighted f1-score are ~1 or 100%, indicating that the `RandomForestClassifier` model captures all the underlying ground truth of the data. Weighted f1-score is slightly lower than accuracy, which is expected, because it takes into account the classifier's performance on predicting a highly imbalanced response, `Class`. Still, weighted f1-score is the preferred metric for this dataset as it provides a more truthful representation than accuracy alone of the classifier's ability to capture the data's variability. 
+
+Next, we will assess the classifier's performance on the test dataset to understand whether it is overfitting the training data. We can also try to tune the hyperparameters to see if we can improve the model's performance and this experiment is performed in the next sections.
 
 ```{python}
 %%time
@@ -209,6 +172,10 @@ disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Random Forest', fontsize=15, color='#336699',loc='center')
 plt.savefig('products/plots/confusion_matrix_RF.png')
 ```
+
+The base or untuned `RandomForestClassifier` performs exceptionally well on unseen data as shown by the confusion matrix above. The model captures almost all the non-fraudulent (majority) transactions in the test set, and fails to correctly predict 33 fraudulent transactions. Therefore, the model has a very low false positive rate. Not being able to correctly predict 33 fraudulent records could harm the credit card company significantly. It could be safer to label Not Fraud transactions as Fraud transactions instead and alleviate customers’ financial problems. The model's performance, in terms of accuracy and weighted f1-score, on the test set is very similar to the training set, indicating that the model is not overfitting the training data.
+
+We shall see later if we can improve the model's performance on predicting more true negatives by tuning its hyperparameters.
 
 ## BaggingClassifier()
 
@@ -246,8 +213,12 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('Bagging Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('products/plots/Bagging.jpeg')
+plt.savefig('products/plots/Bagging_Box.jpeg')
 ```
+
+Both training set metrics Accuracy and Weighted f1-score are ~1 or 100%, indicating that the `BaggingClassifier` model captures all the underlying ground truth of the data. The upper and lower quartiles of the cross-validated Weighted f1-scores, unlike that of the untuned Random Forest classifier, are higher than those of accuracy. The collected accuracy scores from cross-validation seem to have more variance between 0.9992 and 0.9997 than weighted f1-score does. Still, weighted f1-score is the preferred metric for this dataset as it provides a more truthful representation than accuracy alone of the classifier's ability to capture the data's variability. On the training data, it can be concluded that `RandomForestClassifier` performs slightly better.
+
+Next, we will assess the classifier's performance on the test dataset to understand whether it is overfitting the training data. We can also try to tune the hyperparameters to see if we can improve the model's performance and this experiment is performed in the next sections.
 
 ```{python}
 %%time
@@ -277,6 +248,10 @@ disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Bagging', fontsize=15, color='#336699',loc='center')
 plt.savefig('products/plots/confusion_matrix_Bagging.png')
 ```
+
+Wow, although the untuned `RandomForestClassifier` performed better, in terms of accuracy and weighted f1-score, on the training set, the untuned `BaggingClassifier` performs better than `RandomForestClassifier`  on the test set, which is a more accurate indicator of model overfitting and overall performance. `BaggingClassifier` misclassified 36 observations, with 25 false negatives and 11 false positives, compared to `RandomForestClassifier`'s 40 misclassifications, with 33 false negatives and 7 false positives. Therefore, because the untuned `BaggingClassifier` is more suitable for the business case of alleviating fraudulent transactions, it is the preferred model over `RandomForestClassifier` for this dataset. 
+
+We shall see later if we can improve the model's performance on predicting more true negatives by tuning its hyperparameters.
 
 ## XGboostclassifier()
 
@@ -314,8 +289,12 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('XGBoost Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('products/plots/XGB.jpeg')
+plt.savefig('products/plots/XGB_Box.jpeg')
 ```
+
+From the boxplot above, we can observe that `XGBClassifier` performs better than `RandomForestClassifier` and `BaggingClassifier`, given that its lower and upper fences of accuracy and weighted f1-scores are higher. Its performance on weighted f1-score is similar to that of `RandomForestClassifier`, because its accuracy spread is slightly higher. Still, weighted f1-score is the preferred metric for this dataset as it provides a more truthful representation than accuracy alone of the classifier's ability to capture the data's variability. Moreover, it took a mere 9 seconds to train the model, which is much faster than the other two models. 
+
+Next, we will assess the classifier's performance on the test dataset to understand whether it is overfitting the training data. We can also try to tune the hyperparameters to see if we can improve the model's performance and this experiment is performed in the next sections.
 
 ```{python}
 %%time
@@ -346,6 +325,8 @@ plt.title('Test Set Confusion Matrix for XGBoost', fontsize=15, color='#336699',
 plt.savefig('products/plots/confusion_matrix_XGB.png')
 ```
 
+From the confusion matrix above, we can observe that the untuned `XGBClassifier` performs better than `RandomForestClassifier` and `BaggingClassifier` on the test set. It misclassified 34 observations, with 27 false negatives and 7 false positives, compared to `RandomForestClassifier`'s 40 misclassifications, with 33 false negatives and 7 false positives, and `BaggingClassifier`'s 36 misclassifications, with 25 false negatives and 11 false positives. Although `BaggingClassifier` has two fewer false negatives, which is still significant in the business context, the efficiency of the untuned `XGBClassifier` is more suitable for deploying in a production environment, especially for a financial business that relies on predicting fraudulent transactions on time before they can occur. Therefore, it is the preferred model over `RandomForestClassifier` and `BaggingClassifier` for this dataset.
+
 # Classification with GridSearchCV (8 Points)
 
 ## RandomForestClassifier()
@@ -354,15 +335,15 @@ plt.savefig('products/plots/confusion_matrix_XGB.png')
 %%time
 
 # defining parameter range
-param_grid = params = {
-  'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
-  'max_depth': [3, 5, 7],
+param_grid = {
+  'n_estimators': [50, 100, 200],
+  'max_depth': [None, 3, 5],
   'criterion': ["gini", "entropy"],
-  'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
-  'max_features': list(range(1,X_train.shape[1])),
+  'min_samples_leaf': [0.1, 0.3, 0.5],
+  'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], X_train.shape[1]],
 }
   
-grid = GridSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = 0, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -385,6 +366,8 @@ with open(pkl_filename, 'rb') as file:
   grid_predictions = pickle_model.predict(X_test)
 ```
 
+(93831+116)/(93831+116+40) * 100 = 99.957%
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, grid_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -396,23 +379,24 @@ plt.title('Test Set Confusion Matrix for Grid-Search Tuned Random Forest', fonts
 plt.savefig('products/plots/confusion_matrix_RF_Grid_Tuned.png')
 ```
 
+
 ## BaggingClassifier()
 
 ```{python}
 %%time
 
 # defining parameter range
-param_grid = params = {
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
-    'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], 0.7*X_train.shape[0], X_train.shape[0]],
-    'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], 0.7*X_train.shape[1], X_train.shape[1]],
+param_grid = {
+    # 'n_estimators': [50, 100],
+    # 'max_samples': [int(0.1*X_train.shape[0]), int(0.3*X_train.shape[0]), int(0.5*X_train.shape[0]), int(0.7*X_train.shape[0])],
+    # 'max_features': [0.15, 0.3, 0.45, 0.6, 0.75, 0.9], # 'sqrt', 'log2' raise ValueError
     'bootstrap_features': [True, False],
     'bootstrap': [True, False],
     'oob_score': [True, False],
     'warm_start': [True, False],
 }
   
-grid = GridSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(BaggingClassifier(verbose=0), param_grid, refit = True, verbose = 0, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -435,6 +419,7 @@ with open(pkl_filename, 'rb') as file:
   grid_predictions = pickle_model.predict(X_test)
 ```
 
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, grid_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -446,23 +431,24 @@ plt.title('Test Set Confusion Matrix for Grid-Search Tuned Bagging', fontsize=15
 plt.savefig('products/plots/confusion_matrix_Bagging_Grid_Tuned.png')
 ```
 
+
 ## XGBClassifier()
 
 ```{python}
 %%time
 
 # defining parameter range
-param_grid = params = {
-    'max_depth': [2, 3, 5, 10, 20],
-    'max_leaves': [0, 1, 2, 3, 4, 5],
-    'learning_rate': [1, 0.1, 0.01, 0.001, 0.0001],
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+param_grid = {
+    #'max_depth': [2, 5, 10, 20],
+    #'max_leaves': [0, 1, 3, 5],
+    'learning_rate': [1, 0.1, 0.01],
+    #'n_estimators': [50, 100],
     'booster': ['gbtree', 'gblinear', 'dart'],
     'gamma': [0, 0.5, 2, 5],
-    'min_child_weight': [0, 1, 3, 5],
+    #'min_child_weight': [0, 1, 3, 5],
 }
   
-grid = GridSearchCV(XGBClassifier(), param_grid, refit = True, verbose = 0, scoring='accuracy', cv = 5, n_jobs=-1)
+grid = GridSearchCV(XGBClassifier(verbosity=0), param_grid, refit = True, verbose = 0, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 grid.fit(X_train, y_train)
 
@@ -485,6 +471,7 @@ with open(pkl_filename, 'rb') as file:
   grid_predictions = pickle_model.predict(X_test)
 ```
 
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, grid_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -496,21 +483,22 @@ plt.title('Test Set Confusion Matrix for Grid-Search Tuned XGBoost', fontsize=15
 plt.savefig('products/plots/confusion_matrix_XGB_Grid_Tuned.png')
 ```
 
+
 # Classification with RandomSearchCV (8 Points)
 
 ## RandomForestClassifier()
 
 ```{python}
 # defining parameter range
-param_search = params = {
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
-    'max_depth': [3, 5, 7],
-    'criterion': ["gini", "entropy"]
-    'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
-    'max_features': list(range(1,train.shape[1])),
+param_search = {
+  'n_estimators': [50, 100, 200],
+  'max_depth': [None, 3, 5],
+  'criterion': ["gini", "entropy"],
+  'min_samples_leaf': [0.1, 0.3, 0.5],
+  'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], X_train.shape[1]],
 }
   
-search = RandomizedSearchCV(RandomForestClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(RandomForestClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 search.fit(X_train, y_train)
 
@@ -521,7 +509,7 @@ print("The best parameters after tuning are: ", search.best_params_)
 print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "RF_Rand_Tuned.pkl"
+pkl_filename = "products/pickle_files/RF_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(search, file)
 
@@ -533,6 +521,7 @@ with open(pkl_filename, 'rb') as file:
   search_predictions = pickle_model.predict(X_test)
 ```
 
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -541,24 +530,25 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned Random Forest', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_RF_Rand_Tuned.png')
+plt.savefig('products/plots/confusion_matrix_RF_Rand_Tuned.png')
 ```
+
 
 ## BaggingClassifier()
 
 ```{python}
 # defining parameter range
-param_search = params = {
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
-    'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], 0.7*X_train.shape[0], X_train.shape[0]],
-    'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], 0.7*X_train.shape[1], X_train.shape[1]],
+param_search = {
+    # 'n_estimators': [50, 100, 200],
+    # 'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], X_train.shape[0]],
+    # 'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], X_train.shape[1]],
     'bootstrap_features': [True, False],
     'bootstrap': [True, False],
     'oob_score': [True, False],
     'warm_start': [True, False],
 }
   
-search = RandomizedSearchCV(BaggingClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(BaggingClassifier(verbose=0), param_search, refit = True, verbose = 0, n_iter=25, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 search.fit(X_train, y_train)
 
@@ -569,7 +559,7 @@ print("The best parameters after tuning are: ", search.best_params_)
 print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "Bagging_Rand_Tuned.pkl"
+pkl_filename = "products/pickle_files/Bagging_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(search, file)
 
@@ -581,6 +571,7 @@ with open(pkl_filename, 'rb') as file:
   search_predictions = pickle_model.predict(X_test)
 ```
 
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -589,24 +580,25 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned Bagging', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_Bagging_Rand_Tuned.png')
+plt.savefig('products/plots/confusion_matrix_Bagging_Rand_Tuned.png')
 ```
+
 
 ## XGBClassifier()
 
 ```{python}
 # defining parameter range
-param_search = params = {
-    'max_depth': [2, 3, 5, 10, 20],
-    'max_leaves': [0, 1, 2, 3, 4, 5],
-    'learning_rate': [1, 0.1, 0.01, 0.001, 0.0001],
-    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+param_search = {
+    #'max_depth': [2, 5, 10, 20],
+    #'max_leaves': [0, 1, 3, 5],
+    'learning_rate': [1, 0.1, 0.01],
+    #'n_estimators': [50, 100],
     'booster': ['gbtree', 'gblinear', 'dart'],
     'gamma': [0, 0.5, 2, 5],
-    'min_child_weight': [0, 1, 3, 5],
+    #'min_child_weight': [0, 1, 3, 5],
 }
   
-search = RandomizedSearchCV(XGBClassifier(), param_search, refit = True, verbose = 0, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
+search = RandomizedSearchCV(XGBClassifier(verbosity=0), param_search, refit = True, verbose = 0, n_iter=25, scoring='f1_weighted', cv = 5, n_jobs=-1)
 
 search.fit(X_train, y_train)
 
@@ -617,7 +609,7 @@ print("The best parameters after tuning are: ", search.best_params_)
 print("The best model after tuning looks like: ",search.best_estimator_)
 
 # Save to file in the current working directory
-pkl_filename = "XGB_Rand_Tuned.pkl"
+pkl_filename = "products/pickle_files/XGB_Rand_Tuned.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(search, file)
 
@@ -629,6 +621,7 @@ with open(pkl_filename, 'rb') as file:
   search_predictions = pickle_model.predict(X_test)
 ```
 
+
 ```{python}
 conf_matrix = confusion_matrix(y_test, search_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
@@ -637,10 +630,12 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Grid-Search Tuned XGBoost', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_XGB_Rand_Tuned.png')
+plt.savefig('products/plots/confusion_matrix_XGB_Rand_Tuned.png')
 ```
+
 
 # Comparison and Analysis (5 Points)
 
 Compare the results from Q2, Q3, and Q4. Describe the best hyperparameters for all three experiments.
+
 
