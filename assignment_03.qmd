@@ -1,12 +1,14 @@
 ---
-title: "Assignment 03"
-subtitle: "Hyperparameter Tunning - Group Number 11"
+title: Assignment 03
+subtitle: Hyperparameter Tunning - Group Number 11
 date: 09/29/2023
 date-modified: last-modified
 date-format: long
 format:
   html:
-    theme: [cosmo, theme.scss]
+    theme:
+      - cosmo
+      - theme.scss
     toc: true
     embed-resources: true
     number-sections: true
@@ -17,8 +19,8 @@ author:
         name: Georgetown University
         city: Washington
         state: DC
+jupyter: python3
 ---
-
 
 # Instructions (Remove the instructions before submission)
 
@@ -68,29 +70,29 @@ This section is graded based on the Github submission. Each person needs to have
 # Data Preparation (7 Points):
 
 ## Import the necessary libraries
+
 ```{python}
-#| vscode: {languageId: python}
 import random
 random.seed(1310) # last 4 GUID digits
 from seaborn.palettes import color_palette
 from seaborn import set_palette
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import seaborn as sns
-import plotly.express as px
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import cross_val_score, RepeatedKFold, GridSearchCV, RandomizedSearchCV
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+import pickle
 import warnings
 warnings.filterwarnings('ignore')
-import plotly.io as pio
-#pio.renderers.default = "notebook"
-pio.renderers.default = "plotly_mimetype+notebook_connected"
 ```
 
 ## Load the dataset and display the dataframe (2 Points).
 
 ```{python}
-#| vscode: {languageId: python}
 filename = '../HW2/creditcard.csv'
 CC = pd.read_csv(filename)
 
@@ -109,7 +111,6 @@ CC.describe()
 ```{python}
 #| colab: {base_uri: 'https://localhost:8080/'}
 #| outputId: 8f115a25-886d-43aa-fb1f-8fea814c0ed2
-#| vscode: {languageId: python}
 # Class is categorical variables but is encoded as integer
 CC['Class'] = CC['Class'].astype('category')
 
@@ -121,12 +122,6 @@ CC.dropna(inplace=True)
 ## Split the dataset into a Training set and a Test set. Justify your preferred split (3 Points).
 
 ```{python}
-#| vscode: {languageId: python}
-from sklearn.model_selection import cross_val_score, RepeatedKFold, GridSearchCV, RandomizedSearchCV
-from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
-from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
-
 X_train, X_test, y_train, y_test = train_test_split(CC.iloc[:,0:-2],
                                         CC.iloc[:,-1],
                                         test_size=0.33,
@@ -151,8 +146,7 @@ Execute a classification routine using RandomForestClassifier(), BaggingClassifi
 ## RandomForestClassifier()
 
 ```{python}
-#| vscode: {languageId: python}
-
+%%time
 RF = RandomForestClassifier()
 
 cv = RepeatedKFold(n_splits=5, n_repeats=2, random_state=1)
@@ -164,12 +158,10 @@ RF_weighted_f1 = cross_val_score(RF, X_train, y_train, scoring='f1_weighted', cv
 mean_accuracy_percentage = RF_accuracy.mean() * 100
 mean_weighted_f1_percentage = RF_weighted_f1.mean() * 100
 
-print('Random Forest Mean Accuracy: %.3f Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
+print('Random Forest Mean Accuracy: %.3f, Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 results = {}
 results['Accuracy'] = RF_accuracy
 results['Weighted_F1'] = RF_weighted_f1
@@ -186,18 +178,16 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('Random Forest Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('RF.jpeg')
+plt.savefig('products/plots/RF.jpeg')
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
-import pickle
+%%time
 
 RF.fit(X_train, y_train)
 
 # Save to file in the current working directory
-pkl_filename = "RF.pkl"
+pkl_filename = "products/pickle_files/RF.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(RF, file)
 
@@ -205,13 +195,11 @@ with open(pkl_filename, 'wb') as file:
 with open(pkl_filename, 'rb') as file:
   pickle_model = pickle.load(file)
   score = pickle_model.score(X_test, y_test)
-  print("Test Set Accuracy: {0:.2f} %".format(100 * score))
+  print("Random Forest Test Set Accuracy: {0:.2f} %".format(100 * score))
   Y_predict = pickle_model.predict(X_test)
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 conf_matrix = confusion_matrix(y_test, Y_predict)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
@@ -219,12 +207,14 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Random Forest', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_RF.png')
+plt.savefig('products/plots/confusion_matrix_RF.png')
 ```
 
 ## BaggingClassifier()
 
 ```{python}
+%%time
+
 Bagging = BaggingClassifier()
 
 cv = RepeatedKFold(n_splits=5, n_repeats=2, random_state=1)
@@ -236,12 +226,10 @@ Bagging_weighted_f1 = cross_val_score(Bagging, X_train, y_train, scoring='f1_wei
 mean_accuracy_percentage = Bagging_accuracy.mean() * 100
 mean_weighted_f1_percentage = Bagging_weighted_f1.mean() * 100
 
-print('Bagging Mean Accuracy: %.3f Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
+print('Bagging Mean Accuracy: %.3f, Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 results = {}
 results['Accuracy'] = Bagging_accuracy
 results['Weighted_F1'] = Bagging_weighted_f1
@@ -258,18 +246,16 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('Bagging Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('Bagging.jpeg')
+plt.savefig('products/plots/Bagging.jpeg')
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
-import pickle
+%%time
 
 Bagging.fit(X_train, y_train)
 
 # Save to file in the current working directory
-pkl_filename = "Bagging.pkl"
+pkl_filename = "products/pickle_files/Bagging.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(Bagging, file)
 
@@ -277,13 +263,11 @@ with open(pkl_filename, 'wb') as file:
 with open(pkl_filename, 'rb') as file:
   pickle_model = pickle.load(file)
   score = pickle_model.score(X_test, y_test)
-  print("Test Set Accuracy: {0:.2f} %".format(100 * score))
+  print("Bagging Test Set Accuracy: {0:.2f} %".format(100 * score))
   Y_predict = pickle_model.predict(X_test)
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 conf_matrix = confusion_matrix(y_test, Y_predict)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
@@ -291,12 +275,14 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for Bagging', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_Bagging.png')
+plt.savefig('products/plots/confusion_matrix_Bagging.png')
 ```
 
 ## XGboostclassifier()
 
 ```{python}
+%%time
+
 XGB = XGBClassifier()
 
 cv = RepeatedKFold(n_splits=5, n_repeats=2, random_state=1)
@@ -308,12 +294,10 @@ XGB_weighted_f1 = cross_val_score(XGB, X_train, y_train, scoring='f1_weighted', 
 mean_accuracy_percentage = XGB_accuracy.mean() * 100
 mean_weighted_f1_percentage = XGB_weighted_f1.mean() * 100
 
-print('XGBoost Mean Accuracy: %.3f Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
+print('XGBoost Mean Accuracy: %.3f, Mean Weighted F1: %.3f' % (mean_accuracy_percentage, mean_weighted_f1_percentage))
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 results = {}
 results['Accuracy'] = XGB_accuracy
 results['Weighted_F1'] = XGB_weighted_f1
@@ -330,18 +314,16 @@ plt.xlabel('Metric')
 plt.ylabel('Value')
 plt.title('XGBoost Training Set Accuracy vs Weighted_F1')
 plt.show()
-plt.savefig('XGB.jpeg')
+plt.savefig('products/plots/XGB.jpeg')
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
-import pickle
+%%time
 
 XGB.fit(X_train, y_train)
 
 # Save to file in the current working directory
-pkl_filename = "XGB.pkl"
+pkl_filename = "products/pickle_files/XGB.pkl"
 with open(pkl_filename, 'wb') as file:
   pickle.dump(XGB, file)
 
@@ -354,8 +336,6 @@ with open(pkl_filename, 'rb') as file:
 ```
 
 ```{python}
-#| vscode: {languageId: python}
-
 conf_matrix = confusion_matrix(y_test, Y_predict)
 disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
 
@@ -363,7 +343,7 @@ disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not
 
 disp.plot(cmap='YlGnBu',values_format='d',ax=None)
 plt.title('Test Set Confusion Matrix for XGBoost', fontsize=15, color='#336699',loc='center')
-plt.savefig('confusion_matrix_XGB.png')
+plt.savefig('products/plots/confusion_matrix_XGB.png')
 ```
 
 # Classification with GridSearchCV (8 Points)
@@ -371,22 +351,149 @@ plt.savefig('confusion_matrix_XGB.png')
 ## RandomForestClassifier()
 
 ```{python}
-# Add code here
+%%time
 
+# defining parameter range
+param_grid = params = {
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'max_depth': [3, 5, 7],
+    'criterion': ["gini", "entropy"]
+    'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
+    'max_features': list(range(1,train.shape[1])),
+}
+  
+grid = GridSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "products/pickle_files/RF_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned Random Forest Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned Random Forest', fontsize=15, color='#336699',loc='center')
+plt.savefig('products/plots/confusion_matrix_RF_Grid_Tuned.png')
 ```
 
 ## BaggingClassifier()
 
 ```{python}
-# Add code here
+%%time
 
+# defining parameter range
+param_grid = params = {
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], 0.7*X_train.shape[0], X_train.shape[0]],
+    'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], 0.7*X_train.shape[1], X_train.shape[1]],
+    'bootstrap_features': [True, False],
+    'bootstrap': [True, False],
+    'oob_score': [True, False],
+    'warm_start': [True, False],
+}
+  
+grid = GridSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "products/pickle_files/Bagging_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned Bagging Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned Bagging', fontsize=15, color='#336699',loc='center')
+plt.savefig('products/plots/confusion_matrix_Bagging_Grid_Tuned.png')
 ```
 
 ## XGBClassifier()
 
 ```{python}
-# Add code here
+%%time
 
+# defining parameter range
+param_grid = params = {
+    'max_depth': [2, 3, 5, 10, 20],
+    'max_leaves': [0, 1, 2, 3, 4, 5],
+    'learning_rate': [1, 0.1, 0.01, 0.001, 0.0001],
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'booster': ['gbtree', 'gblinear', 'dart'],
+    'gamma': [0, 0.5, 2, 5],
+    'min_child_weight': [0, 1, 3, 5],
+}
+  
+grid = GridSearchCV(XGBClassifier(), param_grid, refit = True, verbose = -1, scoring='accuracy', cv = 5, n_jobs=-1)
+
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "products/pickle_files/XGB_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned XGBoost Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned XGBoost', fontsize=15, color='#336699',loc='center')
+plt.savefig('products/plots/confusion_matrix_XGB_Grid_Tuned.png')
 ```
 
 # Classification with RandomSearchCV (8 Points)
@@ -394,24 +501,146 @@ plt.savefig('confusion_matrix_XGB.png')
 ## RandomForestClassifier()
 
 ```{python}
-# Add code here
+# defining parameter range
+param_grid = params = {
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'max_depth': [3, 5, 7],
+    'criterion': ["gini", "entropy"]
+    'min_samples_leaf': [0.1, 0.2, 0.3, 0.4, 0.5],
+    'max_features': list(range(1,train.shape[1])),
+}
+  
+grid = RandomizedSearchCV(RandomForestClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "RF_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned Random Forest Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned Random Forest', fontsize=15, color='#336699',loc='center')
+plt.savefig('confusion_matrix_RF_Grid_Tuned.png')
 ```
 
 ## BaggingClassifier()
 
 ```{python}
-# Add code here
+# defining parameter range
+param_grid = params = {
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'max_samples': [0.1*X_train.shape[0], 0.3*X_train.shape[0], 0.5*X_train.shape[0], 0.7*X_train.shape[0], X_train.shape[0]],
+    'max_features': [0.1*X_train.shape[1], 0.3*X_train.shape[1], 0.5*X_train.shape[1], 0.7*X_train.shape[1], X_train.shape[1]],
+    'bootstrap_features': [True, False],
+    'bootstrap': [True, False],
+    'oob_score': [True, False],
+    'warm_start': [True, False],
+}
+  
+grid = RandomizedSearchCV(BaggingClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "Bagging_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned Bagging Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned Bagging', fontsize=15, color='#336699',loc='center')
+plt.savefig('confusion_matrix_Bagging_Grid_Tuned.png')
 ```
 
 ## XGBClassifier()
 
 ```{python}
-# Add code here
+# defining parameter range
+param_grid = params = {
+    'max_depth': [2, 3, 5, 10, 20],
+    'max_leaves': [0, 1, 2, 3, 4, 5],
+    'learning_rate': [1, 0.1, 0.01, 0.001, 0.0001],
+    'n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 200],
+    'booster': ['gbtree', 'gblinear', 'dart'],
+    'gamma': [0, 0.5, 2, 5],
+    'min_child_weight': [0, 1, 3, 5],
+}
+  
+grid = RandomizedSearchCV(XGBClassifier(), param_grid, refit = True, verbose = -1, n_iter=25, scoring='accuracy', cv = 5, n_jobs=-1)
 
+grid.fit(X_train, y_train)
+
+# print best parameter after tuning
+print("The best parameters after tuning are: ", grid.best_params_)
+  
+# print how our model looks after hyper-parameter tuning
+print("The best model after tuning looks like: ",grid.best_estimator_)
+
+# Save to file in the current working directory
+pkl_filename = "XGB_Grid_Tuned.pkl"
+with open(pkl_filename, 'wb') as file:
+  pickle.dump(grid, file)
+
+# Load from file
+with open(pkl_filename, 'rb') as file:
+  pickle_model = pickle.load(file)
+  score = pickle_model.score(X_test, y_test)
+  print("Grid-Search Tuned XGBoost Test Set Accuracy: {0:.2f} %".format(100 * score))
+  grid_predictions = pickle_model.predict(X_test)
+```
+
+```{python}
+conf_matrix = confusion_matrix(y_test, grid_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=['Not Fraud','Fraud'], )
+
+# save the plot
+
+disp.plot(cmap='YlGnBu',values_format='d',ax=None)
+plt.title('Test Set Confusion Matrix for Grid-Search Tuned XGBoost', fontsize=15, color='#336699',loc='center')
+plt.savefig('confusion_matrix_XGB_Grid_Tuned.png')
 ```
 
 # Comparison and Analysis (5 Points)
 
 Compare the results from Q2, Q3, and Q4. Describe the best hyperparameters for all three experiments.
+
